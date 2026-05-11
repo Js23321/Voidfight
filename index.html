@@ -1,1 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VOIDFIGHT — Enter the Void</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+ --bg:#03040a;--panel:#08090f;--panel2:#0d1120;
+ --border:#1a2436;--border2:#253550;
+ --p1:#00e5ff;--p2:#ff3c6e;--gold:#ffd700;
+ --text:#7a92aa;--hi:#d8eaf8;--green:#39ff14;
+ --g1:0 0 20px #00e5ffcc,0 0 50px #00e5ff44;
+}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-family:'Rajdhani',sans-serif;}
 
+#bg-canvas{position:fixed;inset:0;z-index:0;}
+
+.screen{
+ position:fixed;inset:0;z-index:10;
+ display:flex;align-items:center;justify-content:center;
+}
+
+/* ── CARD ── */
+.card{
+ background:rgba(10,14,26,0.95);
+ border:1px solid var(--border2);
+ width:420px;
+ padding:40px 40px 32px;
+ position:relative;
+ backdrop-filter:blur(24px);
+ box-shadow:0 0 80px #00e5ff12, 0 20px 60px #00000088, inset 0 0 40px #00000044;
+ transition:transform .08s;
+ 
+}
+.card::before,.card::after{content:'';position:absolute;width:18px;height:18px;border-color:var(--p1);border-style:solid;}
+.card::before{top:-1px;left:-1px;border-width:2px 0 0 2px;}
+.card::after{bottom:-1px;right:-1px;border-width:0 2px 2px 0;}
+.corner-tr,.corner-bl{position:absolute;width:18px;height:18px;border-color:var(--p1);border-style:solid;}
+.corner-tr{top:-1px;right:-1px;border-width:2px 2px 0 0;}
+.corner-bl{bottom:-1px;left:-1px;border-width:0 0 2px 2px;}
+
+/* ── LOGO ── */
+.logo{
+ font-family:'Orbitron',monospace;font-weight:900;font-size:34px;
+ letter-spacing:10px;color:#fff;text-align:center;
+ text-shadow:0 0 40px #00e5ff88,0 0 80px #00e5ff22;
+ margin-bottom:3px;
+}
+.logo-sub{
+ font-family:'Share Tech Mono',monospace;font-size:8px;
+ letter-spacing:5px;color:var(--text);text-align:center;
+ margin-bottom:26px;opacity:.45;
+}
+
+/* ── TABS ── */
+.tabs{display:flex;border:1px solid var(--border);margin-bottom:22px;}
+.tab{
+ flex:1;padding:10px;text-align:center;cursor:pointer;
+ font-family:'Share Tech Mono',monospace;font-size:10px;
+ letter-spacing:3px;color:var(--text);
+ background:var(--panel);border:none;
+ transition:all .15s;text-transform:uppercase;
+}
+.tab.active{color:var(--p1);background:#060e14;border-bottom:2px solid var(--p1);}
+.tab:hover:not(.active){color:var(--hi);background:var(--panel2);}
+
+/* ── FIELDS ── */
+.field{margin-bottom:14px;position:relative;}
+.field label{
+ display:block;font-family:'Share Tech Mono',monospace;
+ font-size:8px;letter-spacing:2px;color:var(--text);
+ margin-bottom:5px;text-transform:uppercase;
+}
+.field input{
+ width:100%;background:#080c18;
+ border:1px solid var(--border2);color:#fff;
+ font-family:'Share Tech Mono',monospace;font-size:14px;
+ letter-spacing:2px;padding:12px 48px 12px 14px;outline:none;
+ transition:border-color .22s,box-shadow .22s;
+ 
+}
+.field input:focus{border-color:var(--p1);box-shadow:0 0 14px #00e5ff18;}
+.field input::placeholder{color:#1e2d3a;font-size:11px;letter-spacing:1px;}
+.field input.err{border-color:var(--p2);}
+
+/* password toggle */
+.pwd-toggle{
+ position:absolute;right:0;bottom:0;height:44px;width:44px;
+ background:none;border:none;border-left:1px solid var(--border);
+ color:var(--text);font-size:14px;
+ cursor:pointer;transition:color .15s,background .15s;
+}
+.pwd-toggle:hover{color:var(--p1);background:#060e14;}
+
+/* availability badge */
+.avail-badge{
+ position:absolute;right:10px;top:30px;
+ font-family:'Share Tech Mono',monospace;font-size:8px;
+ letter-spacing:1px;opacity:0;transition:opacity .2s;
+ pointer-events:none;
+}
+.avail-badge.show{opacity:1;}
+.avail-badge.ok{color:var(--green);}
+.avail-badge.taken{color:var(--p2);}
+.avail-badge.checking{color:var(--gold);}
+
+/* field note */
+.field-note{
+ font-family:'Share Tech Mono',monospace;font-size:7px;
+ letter-spacing:1px;color:var(--text);opacity:.3;
+ margin-top:4px;padding-left:2px;
+}
+
+/* strength bar */
+.strength-wrap{margin-top:5px;display:none;}
+.strength-wrap.show{display:block;}
+.strength-bar{height:2px;background:var(--border);border-radius:1px;overflow:hidden;}
+.strength-fill{height:100%;width:0%;transition:width .25s,background .25s;}
+.strength-label{font-family:'Share Tech Mono',monospace;font-size:7px;letter-spacing:1px;margin-top:3px;opacity:.45;}
+
+/* ── ERROR ── */
+.error-msg{
+ font-family:'Share Tech Mono',monospace;font-size:8px;
+ letter-spacing:1px;color:var(--p2);min-height:16px;
+ margin-bottom:8px;padding-left:2px;
+}
+.error-msg.show::before{content:'⚠ ';}
+
+/* ── SUBMIT ── */
+.submit-btn{
+ width:100%;background:transparent;border:1px solid var(--p1);
+ color:var(--p1);font-family:'Orbitron',monospace;font-size:11px;
+ font-weight:700;letter-spacing:5px;text-transform:uppercase;
+ padding:13px;cursor:pointer;position:relative;overflow:hidden;
+ transition:color .2s ease;margin-top:2px;
+}
+.submit-btn::before{
+ content:'';position:absolute;inset:0;
+ background:var(--p1);transform:scaleX(0);
+ transform-origin:left;transition:transform .22s cubic-bezier(.4,0,.2,1);
+}
+.submit-btn:hover:not(:disabled)::before{transform:scaleX(1);}
+.submit-btn:hover:not(:disabled){color:#000;}
+.submit-btn:hover:not(:disabled) span{color:#000;}
+.submit-btn:disabled{opacity:.35;cursor:not-allowed;}
+.submit-btn span{position:relative;z-index:1;color:inherit;}
+
+.spinner-wrap{display:none;position:absolute;inset:0;background:var(--p1);align-items:center;justify-content:center;z-index:2;}
+.spinner-wrap.show{display:flex;}
+.spinner{width:16px;height:16px;border:2px solid #00000033;border-top-color:#000;border-radius:50%;animation:spin .55s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* ── BOTTOM NOTE ── */
+.bottom-note{
+ text-align:center;margin-top:16px;
+ font-family:'Share Tech Mono',monospace;
+ font-size:7px;letter-spacing:1px;color:var(--text);opacity:.28;line-height:2;
+}
+
+/* ── SUCCESS ── */
+#success-screen{
+ position:fixed;inset:0;z-index:200;background:rgba(3,4,10,.97);
+ display:none;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+}
+#success-screen.show{display:flex;}
+.s-icon{font-size:46px;animation:pop .35s cubic-bezier(.36,.07,.19,.97);}
+@keyframes pop{0%{transform:scale(0);}65%{transform:scale(1.15);}100%{transform:scale(1);}}
+.s-title{font-family:'Orbitron',monospace;font-size:14px;font-weight:700;letter-spacing:8px;color:var(--text);margin-bottom:4px;}
+.s-name{font-family:'Orbitron',monospace;font-size:30px;font-weight:900;letter-spacing:4px;color:#fff;text-shadow:var(--g1);}
+.s-sub{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:3px;color:var(--text);margin-top:6px;opacity:.5;}
+.s-bar{width:260px;height:3px;background:var(--border);margin-top:20px;overflow:hidden;}
+.s-fill{height:100%;background:var(--p1);width:0%;}
+
+/* ── TOAST ── */
+#toast{position:fixed;top:18px;right:18px;z-index:999;display:flex;flex-direction:column;gap:5px;}
+.tmsg{background:var(--panel2);border-left:3px solid var(--gold);padding:7px 12px;font-size:8px;font-family:'Share Tech Mono',monospace;color:var(--hi);letter-spacing:1px;animation:tIn .25s cubic-bezier(.22,1,.36,1);}
+.tmsg.green{border-color:var(--green);}
+.tmsg.red{border-color:var(--p2);}
+@keyframes tIn{from{transform:translateX(50px) scale(.95);opacity:0;}to{transform:none;opacity:1;}}
+
+.scanlines{position:fixed;inset:0;z-index:5;pointer-events:none;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.03) 2px,rgba(0,0,0,.03) 4px);}
+</style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+<div class="scanlines"></div>
+<div id="toast"></div>
+
+<!-- ══════ CARD ══════ -->
+<div class="screen">
+ <div class="card" id="card">
+ <div class="corner-tr"></div>
+ <div class="corner-bl"></div>
+
+ <div class="logo">VOIDFIGHT</div>
+ <div class="logo-sub">SEASON IV · COMPETITIVE COMBAT</div>
+
+ <div class="tabs">
+ <button class="tab active" id="tab-login" onclick="switchTab('login')">SIGN IN</button>
+ <button class="tab" id="tab-signup" onclick="switchTab('signup')">CREATE ACCOUNT</button>
+ </div>
+
+ <!-- USERNAME -->
+ <div class="field">
+ <label>Username</label>
+ <input
+ type="text" id="inp-user"
+ placeholder="Your username"
+ maxlength="16" autocomplete="username"
+ oninput="onUsernameInput()" onkeydown="onKey(event)"
+ />
+ <span class="avail-badge" id="avail-badge"></span>
+ <div class="field-note" id="user-note" style="display:none">Letters, numbers and _ only · 3–16 characters</div>
+ </div>
+
+ <!-- PASSWORD -->
+ <div class="field">
+ <label>Password</label>
+ <input
+ type="password" id="inp-pass"
+ placeholder="Your password"
+ autocomplete="current-password"
+ oninput="onPassInput()" onkeydown="onKey(event)"
+ />
+ <button class="pwd-toggle" onclick="togglePwd()" title="Show/hide password">👁</button>
+ <div class="strength-wrap" id="strength-wrap">
+ <div class="strength-bar"><div class="strength-fill" id="s-fill"></div></div>
+ <div class="strength-label" id="s-label"></div>
+ </div>
+ </div>
+
+ <div class="error-msg" id="error-msg"></div>
+
+ <button class="submit-btn" id="submit-btn" onclick="handleAuth()">
+ <span id="submit-label">ENTER THE VOID</span>
+ <div class="spinner-wrap" id="spinner"><div class="spinner"></div></div>
+ </button>
+
+ <div class="bottom-note">
+ USERNAME IS YOUR IDENTITY · NO EMAIL NEEDED<br>
+ PROGRESS SAVED TO CLOUD · VOIDFIGHT SEASON IV
+ </div>
+ </div>
+</div>
+
+<!-- ══════ SUCCESS ══════ -->
+<div id="success-screen">
+ <div class="s-icon">⚡</div>
+ <div class="s-title" id="s-title">WELCOME BACK</div>
+ <div class="s-name" id="s-name"></div>
+ <div class="s-sub">Loading your profile...</div>
+ <div class="s-bar"><div class="s-fill" id="s-fill-bar"></div></div>
+</div>
+
+<!-- ══════ FIREBASE (module) ══════ -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import {
+ getAuth,
+ createUserWithEmailAndPassword,
+ signInWithEmailAndPassword,
+ onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import {
+ getFirestore,
+ doc, setDoc, getDoc, getDocs,
+ collection, query, where
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+ apiKey: "AIzaSyDUF6end-yZTso5ViOfqNBHqFHfgVsatFk",
+ authDomain: "cool-game-56f6d.firebaseapp.com",
+ projectId: "cool-game-56f6d",
+ storageBucket: "cool-game-56f6d.firebasestorage.app",
+ messagingSenderId: "204717712760",
+ appId: "1:204717712760:web:cd8baad92c420a935f548d"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// Expose to the UI script below
+window.$auth = auth;
+window.$db = db;
+window.$createUser = createUserWithEmailAndPassword;
+window.$signIn = signInWithEmailAndPassword;
+window.$doc = doc;
+window.$setDoc = setDoc;
+window.$getDoc = getDoc;
+window.$getDocs = getDocs;
+window.$collection = collection;
+window.$query = query;
+window.$where = where;
+
+// Auto-login: already signed in → skip straight to game
+onAuthStateChanged(auth, async user => {
+ if (!user) return;
+ try {
+ const snap = await getDoc(doc(db, 'players', user.uid));
+ if (snap.exists()) {
+ window.enterGame(user.uid, snap.data().username, false);
+ }
+ } catch(e) {}
+});
+</script>
+
+<!-- ══════ UI LOGIC ══════ -->
+<script>
+'use strict';
+
+/*
+ HOW THE "NO EMAIL" TRICK WORKS
+ ─────────────────────────────────────────────────────
+ Firebase Auth requires an email. We fake one behind
+ the scenes by appending @voidfight.gg to the username:
+
+ SHADOWFANG → shadowfang@voidfight.gg
+
+ The player never sees it. They only ever type their
+ username and password. The real display name is stored
+ in Firestore under players/{uid}.username
+ ─────────────────────────────────────────────────────
+*/
+
+let currentTab = 'login';
+let availTimer = null;
+let lastChecked = '';
+
+// Convert username → hidden fake email for Firebase Auth
+function toEmail(username) {
+ return username.toLowerCase().trim() + '@voidfight.gg';
+}
+
+// ── TAB SWITCH ──────────────────────────────────────────
+function switchTab(tab) {
+ currentTab = tab;
+ document.getElementById('tab-login').classList.toggle('active', tab === 'login');
+ document.getElementById('tab-signup').classList.toggle('active', tab === 'signup');
+ document.getElementById('submit-label').textContent =
+ tab === 'login' ? 'ENTER THE VOID' : 'CREATE ACCOUNT';
+ document.getElementById('strength-wrap').classList.toggle('show', tab === 'signup');
+ document.getElementById('user-note').style.display = tab === 'signup' ? 'block' : 'none';
+ // reset availability badge
+ const b = document.getElementById('avail-badge');
+ b.className = 'avail-badge'; b.textContent = '';
+ clearError();
+ document.getElementById('inp-user').value = '';
+ document.getElementById('inp-pass').value = '';
+ document.getElementById('s-fill').style.width = '0%';
+ document.getElementById('s-label').textContent = '';
+}
+window.switchTab = switchTab;
+
+// ── USERNAME INPUT ──────────────────────────────────────
+function onUsernameInput() {
+ const el = document.getElementById('inp-user');
+ // strip anything that isn't a letter, number or underscore
+ el.value = el.value.replace(/[^A-Za-z0-9_]/g, '');
+ if (currentTab !== 'signup') return;
+
+ const val = el.value.trim();
+ const badge = document.getElementById('avail-badge');
+ if (val.length < 3) { badge.className = 'avail-badge'; badge.textContent = ''; return; }
+
+ clearTimeout(availTimer);
+ badge.className = 'avail-badge checking show';
+ badge.textContent = '...';
+ availTimer = setTimeout(() => checkAvailability(val), 650);
+}
+window.onUsernameInput = onUsernameInput;
+
+async function checkAvailability(username) {
+ if (username === lastChecked) return;
+ lastChecked = username;
+ const badge = document.getElementById('avail-badge');
+ try {
+ const q = window.$query(
+ window.$collection(window.$db, 'players'),
+ window.$where('usernameLower', '==', username.toLowerCase())
+ );
+ const snap = await window.$getDocs(q);
+ if (snap.empty) {
+ badge.className = 'avail-badge ok show';
+ badge.textContent = '✓ AVAILABLE';
+ } else {
+ badge.className = 'avail-badge taken show';
+ badge.textContent = '✕ TAKEN';
+ }
+ } catch(e) {
+ badge.className = 'avail-badge'; badge.textContent = '';
+ }
+}
+
+// ── PASSWORD STRENGTH ────────────────────────────────────
+function onPassInput() {
+ if (currentTab !== 'signup') return;
+ const val = document.getElementById('inp-pass').value;
+ let score = 0;
+ if (val.length >= 6) score++;
+ if (val.length >= 10) score++;
+ if (/[A-Z]/.test(val)) score++;
+ if (/[0-9]/.test(val)) score++;
+ if (/[^A-Za-z0-9]/.test(val)) score++;
+ const cols = ['#ff3c6e','#ff3c6e','#ff8c00','#ffd700','#39ff14'];
+ const labels = ['TOO SHORT','WEAK','FAIR','STRONG','VOID-PROOF'];
+ const fill = document.getElementById('s-fill');
+ fill.style.width = ((score / 5) * 100) + '%';
+ fill.style.background = cols[Math.min(score, 4)];
+ document.getElementById('s-label').textContent = val.length ? labels[Math.min(score, 4)] : '';
+}
+window.onPassInput = onPassInput;
+
+// ── PASSWORD SHOW/HIDE ───────────────────────────────────
+function togglePwd() {
+ const inp = document.getElementById('inp-pass');
+ inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+window.togglePwd = togglePwd;
+
+// ── ENTER KEY ────────────────────────────────────────────
+function onKey(e) { if (e.key === 'Enter') handleAuth(); }
+window.onKey = onKey;
+
+// ── ERROR ────────────────────────────────────────────────
+function showError(msg) {
+ const el = document.getElementById('error-msg');
+ el.textContent = msg; el.classList.add('show');
+}
+function clearError() {
+ const el = document.getElementById('error-msg');
+ el.textContent = ''; el.classList.remove('show');
+ document.getElementById('inp-user').classList.remove('err');
+ document.getElementById('inp-pass').classList.remove('err');
+}
+function shakeCard() {
+ const c = document.getElementById('card');
+ ['-8px','8px','-4px','4px','0px'].forEach((x, i) =>
+ setTimeout(() => c.style.transform = `translateX(${x})`, i * 55)
+ );
+}
+function setLoading(on) {
+ document.getElementById('submit-btn').disabled = on;
+ document.getElementById('spinner').classList.toggle('show', on);
+ document.getElementById('submit-label').style.visibility = on ? 'hidden' : 'visible';
+}
+
+function fbErrMsg(code) {
+ return ({
+ 'auth/user-not-found': 'Username not found. Check your spelling or create an account.',
+ 'auth/wrong-password': 'Wrong password. Try again.',
+ 'auth/weak-password': 'Password must be at least 6 characters.',
+ 'auth/too-many-requests': 'Too many attempts — please wait a moment.',
+ 'auth/network-request-failed':'Network error. Check your connection.',
+ 'auth/invalid-credential': 'Username or password is incorrect.',
+ })[code] || 'Something went wrong. Please try again.';
+}
+
+// ── MAIN AUTH HANDLER ────────────────────────────────────
+async function handleAuth() {
+ clearError();
+ const username = document.getElementById('inp-user').value.trim();
+ const password = document.getElementById('inp-pass').value;
+
+ // Validation
+ if (!username) {
+ document.getElementById('inp-user').classList.add('err');
+ return showError('Username is required.');
+ }
+ if (username.length < 3) {
+ document.getElementById('inp-user').classList.add('err');
+ return showError('Username must be at least 3 characters.');
+ }
+ if (!password) {
+ document.getElementById('inp-pass').classList.add('err');
+ return showError('Password is required.');
+ }
+ if (currentTab === 'signup' && password.length < 6) {
+ document.getElementById('inp-pass').classList.add('err');
+ return showError('Password must be at least 6 characters.');
+ }
+ if (currentTab === 'signup' && document.getElementById('avail-badge').classList.contains('taken')) {
+ document.getElementById('inp-user').classList.add('err');
+ return showError('That username is already taken. Choose another.');
+ }
+
+ setLoading(true);
+ const fakeEmail = toEmail(username); // hidden from user
+
+ try {
+ if (currentTab === 'signup') {
+ // Double-check username uniqueness in Firestore
+ const q = window.$query(
+ window.$collection(window.$db, 'players'),
+ window.$where('usernameLower', '==', username.toLowerCase())
+ );
+ const existing = await window.$getDocs(q);
+ if (!existing.empty) {
+ setLoading(false);
+ document.getElementById('inp-user').classList.add('err');
+ return showError('That username is already taken. Choose another.');
+ }
+
+ // Create Firebase Auth account with the fake email
+ const cred = await window.$createUser(window.$auth, fakeEmail, password);
+
+ // Save player doc to Firestore
+ await window.$setDoc(window.$doc(window.$db, 'players', cred.user.uid), {
+ username: username,
+ usernameLower: username.toLowerCase(),
+ tag: '#' + Math.floor(Math.random() * 9000 + 1000),
+ exp: 0,
+ score: 0,
+ coins: 150,
+ shards: 0,
+ wins: 0,
+ losses: 0,
+ maxCombo: 0,
+ totalDamage: 0,
+ skills: [],
+ matchHistory: [],
+ ownedItems: [],
+ equippedItems: {},
+ questProgress: {},
+ createdAt: Date.now(),
+ lastSeen: Date.now(),
+ });
+
+ toast('Account created! Welcome, ' + username, 'green');
+ window.enterGame(cred.user.uid, username, true);
+
+ } else {
+ // Sign in with the hidden fake email
+ const cred = await window.$signIn(window.$auth, fakeEmail, password);
+ const snap = await window.$getDoc(window.$doc(window.$db, 'players', cred.user.uid));
+ const name = snap.exists() ? snap.data().username : username;
+ window.enterGame(cred.user.uid, name, false);
+ }
+
+ } catch(e) {
+ setLoading(false);
+ shakeCard();
+ if (e.code === 'auth/email-already-in-use') {
+ document.getElementById('inp-user').classList.add('err');
+ showError('That username is already taken. Choose another.');
+ } else {
+ showError(fbErrMsg(e.code));
+ }
+ }
+}
+window.handleAuth = handleAuth;
+
+// ── ENTER GAME ───────────────────────────────────────────
+function enterGame(uid, username, isNew) {
+ setLoading(false);
+ sessionStorage.setItem('vf_uid', uid);
+ sessionStorage.setItem('vf_username', username);
+
+ const ss = document.getElementById('success-screen');
+ ss.classList.add('show');
+ document.getElementById('s-title').textContent = isNew ? 'ACCOUNT CREATED' : 'WELCOME BACK';
+ document.getElementById('s-name').textContent = username;
+
+ const fill = document.getElementById('s-fill-bar');
+ let pct = 0;
+ const iv = setInterval(() => {
+ pct += 2.2;
+ fill.style.width = Math.min(100, pct) + '%';
+ if (pct >= 100) {
+ clearInterval(iv);
+ window.location.href = 'game.html'; // ← change to your game file
+ }
+ }, 25);
+}
+window.enterGame = enterGame;
+
+// ── TOAST ────────────────────────────────────────────────
+function toast(msg, type = '') {
+ const el = document.createElement('div');
+ el.className = 'tmsg' + (type ? ' ' + type : '');
+ el.textContent = msg;
+ document.getElementById('toast').appendChild(el);
+ setTimeout(() => {
+ el.style.opacity = '0'; el.style.transition = 'opacity .3s';
+ setTimeout(() => el.remove(), 300);
+ }, 3000);
+}
+
+// ── ANIMATED BG ──────────────────────────────────────────
+(function() {
+ const canvas = document.getElementById('bg-canvas');
+ const ctx = canvas.getContext('2d');
+ function resize() { canvas.width = innerWidth; canvas.height = innerHeight; }
+ resize(); window.addEventListener('resize', resize);
+ const nodes = Array.from({length: 55}, () => ({
+ x: Math.random()*innerWidth, y: Math.random()*innerHeight,
+ vx:(Math.random()-.5)*.26, vy:(Math.random()-.5)*.26,
+ r: Math.random()*1.6+.5, op:Math.random()*.4+.07,
+ }));
+ (function draw() {
+ ctx.fillStyle = '#03040a';
+ ctx.fillRect(0, 0, canvas.width, canvas.height);
+ ctx.strokeStyle = 'rgba(0,229,255,.016)'; ctx.lineWidth = 1;
+ for (let x=0; x<canvas.width; x+=55){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,canvas.height);ctx.stroke();}
+ for (let y=0; y<canvas.height; y+=55){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(canvas.width,y);ctx.stroke();}
+ nodes.forEach(n => {
+ n.x+=n.vx; n.y+=n.vy;
+ if(n.x<0)n.x=canvas.width; if(n.x>canvas.width)n.x=0;
+ if(n.y<0)n.y=canvas.height;if(n.y>canvas.height)n.y=0;
+ ctx.beginPath(); ctx.arc(n.x,n.y,n.r,0,Math.PI*2);
+ ctx.fillStyle=`rgba(0,229,255,${n.op})`; ctx.fill();
+ });
+ for(let i=0;i<nodes.length;i++) for(let j=i+1;j<nodes.length;j++){
+ const d=Math.hypot(nodes[i].x-nodes[j].x,nodes[i].y-nodes[j].y);
+ if(d<120){ctx.strokeStyle=`rgba(0,229,255,${(1-d/120)*.05})`;ctx.beginPath();ctx.moveTo(nodes[i].x,nodes[i].y);ctx.lineTo(nodes[j].x,nodes[j].y);ctx.stroke();}
+ }
+ requestAnimationFrame(draw);
+ })();
+})();
+</script>
+</body>
+</html>
